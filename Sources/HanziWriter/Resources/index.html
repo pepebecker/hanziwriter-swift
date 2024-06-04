@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>HanziWriter</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <script src="console-handlers.js"></script>
+    <script src="hanzi-writer.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      #writer {
+        position fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="writer"></div>
+    <script>
+      function errorMessage(tag, e) {
+        return `[JS:${tag}]: ${e?.message || e || "Error"}`;
+      }
+
+      function createHandler(name) {
+        return (data) => {
+          try {
+            if (data) {
+              window.webkit.messageHandlers[name]?.postMessage?.(
+                JSON.stringify(data),
+              );
+            } else {
+              window.webkit.messageHandlers[name]?.postMessage?.();
+            }
+          } catch (e) {
+            console.error(errorMessage("createHandler:" + name, e));
+            throw e;
+          }
+        };
+      }
+
+      let charDataLoaderCompletionHandler = undefined;
+
+      function callCharDataLoaderCompletionHandler(charData) {
+        try {
+          if (typeof charData === "string") {
+            charData = JSON.parse(charData);
+          }
+          charDataLoaderCompletionHandler?.(charData);
+        } catch (e) {
+          console.error(errorMessage("callCharDataLoaderCompletionHandler", e));
+          throw e;
+        }
+      }
+
+      function initHanziWriter(options) {
+        try {
+          if (!options) options = {};
+          if (!options.width) {
+            options.width = window.innerWidth;
+          }
+          if (!options.height) {
+            options.height = window.innerHeight;
+          }
+          if (!options.drawingWidth) {
+            options.drawingWidth = 36;
+          }
+          options.charDataLoader = (char, onComplete) => {
+            charDataLoaderCompletionHandler = onComplete;
+            window.webkit.messageHandlers["charDataLoader"]?.postMessage?.(
+              char,
+            );
+          };
+          options.onLoadCharDataSuccess = createHandler(
+            "onLoadCharDataSuccess",
+          );
+          options.onLoadCharDataError = createHandler("onLoadCharDataError");
+          const element = document.getElementById("writer");
+          window.writer = new HanziWriter(element, options);
+
+          if (options.autoResize) {
+            window.addEventListener("resize", (e) => {
+              try {
+                console.log("Resize");
+                writer.updateDimensions({
+                  width: window.innerWidth,
+                  height: window.innerHeight,
+                });
+              } catch (e) {
+                console.error(errorMessage("initHanziWriter", e));
+                throw e;
+              }
+            });
+          }
+        } catch (e) {
+          console.error(errorMessage("initHanziWriter", e));
+          throw e;
+        }
+      }
+
+      function showCharacter(options = {}) {
+        try {
+          if (!options) options = {};
+          options.onComplete = createHandler("showCharacter.onComplete");
+          writer.showCharacter(options);
+        } catch (e) {
+          console.error(errorMessage("showCharacter", e));
+          throw e;
+        }
+      }
+
+      function hideCharacter(options = {}) {
+        try {
+          if (!options) options = {};
+          options.onComplete = createHandler("hideCharacter.onComplete");
+          writer.hideCharacter(options);
+        } catch (e) {
+          console.error(errorMessage("hideCharacter", e));
+          throw e;
+        }
+      }
+
+      function showOutline(options = {}) {
+        try {
+          if (!options) options = {};
+          options.onComplete = createHandler("showOutline.onComplete");
+          writer.showOutline(options);
+        } catch (e) {
+          console.error(errorMessage("showOutline", e));
+          throw e;
+        }
+      }
+
+      function hideOutline(options = {}) {
+        try {
+          if (!options) options = {};
+          options.onComplete = createHandler("hideOutline.onComplete");
+          writer.hideOutline(options);
+        } catch (e) {
+          console.error(errorMessage("hideOutline", e));
+          throw e;
+        }
+      }
+
+      function updateColor(colorName, colorVal, options = {}) {
+        try {
+          if (!options) options = {};
+          options.onComplete = createHandler("updateColor.onComplete");
+          writer.updateColor(colorName, colorVal, options);
+        } catch (e) {
+          console.error(errorMessage("updateColor", e));
+          throw e;
+        }
+      }
+
+      function animateCharacter(options = {}) {
+        try {
+          if (!options) options = {};
+          options.onComplete = createHandler("animateCharacter.onComplete");
+          writer.animateCharacter(options);
+        } catch (e) {
+          console.error(errorMessage("animateCharacter", e));
+          throw e;
+        }
+      }
+
+      function animateStroke(strokeNum, options = {}) {
+        try {
+          if (!options) options = {};
+          options.onComplete = createHandler("animateStroke.onComplete");
+          writer.animateStroke(strokeNum, options);
+        } catch (e) {
+          console.error(errorMessage("animateStroke", e));
+          throw e;
+        }
+      }
+
+      function highlightStroke(strokeNum, options = {}) {
+        try {
+          if (!options) options = {};
+          options.onComplete = createHandler("highlightStroke.onComplete");
+          writer.highlightStroke(strokeNum, options);
+        } catch (e) {
+          console.error(errorMessage("highlightStroke", e));
+          throw e;
+        }
+      }
+
+      function loopCharacterAnimation() {
+        try {
+          writer.loopCharacterAnimation();
+        } catch (e) {
+          console.error(errorMessage("loopCharacterAnimation", e));
+          throw e;
+        }
+      }
+
+      function pauseAnimation() {
+        try {
+          writer.pauseAnimation();
+        } catch (e) {
+          console.error(errorMessage("pauseAnimation", e));
+          throw e;
+        }
+      }
+
+      function resumeAnimation() {
+        try {
+          writer.resumeAnimation();
+        } catch (e) {
+          console.error(errorMessage("resumeAnimation", e));
+          throw e;
+        }
+      }
+
+      function setCharacter(character) {
+        try {
+          writer.setCharacter(character);
+        } catch (e) {
+          console.error(errorMessage("setCharacter", e));
+          throw e;
+        }
+      }
+
+      function quiz(options) {
+        try {
+          if (!options) options = {};
+          options.onComplete = createHandler("quiz.onComplete");
+          options.onCorrectStroke = createHandler("quiz.onCorrectStroke");
+          options.onMistake = createHandler("quiz.onMistake");
+          window.writer.quiz(options);
+        } catch (e) {
+          console.error(errorMessage("quiz", e));
+          throw e;
+        }
+      }
+
+      function cancelQuiz() {
+        try {
+          writer.cancelQuiz();
+        } catch (e) {
+          console.error(errorMessage("cancelQuiz", e));
+          throw e;
+        }
+      }
+    </script>
+  </body>
+</html>
