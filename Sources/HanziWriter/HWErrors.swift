@@ -11,3 +11,7 @@ public enum HWCharDataLoaderError: Error {
   case failedToCreateUrl
   case failedToFetchAndParse
 }
+
+public enum HWJSMessageError: Error {
+  case failedToParseMessageBody
+}

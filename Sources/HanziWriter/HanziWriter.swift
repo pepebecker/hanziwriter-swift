@@ -28,11 +28,9 @@ public class HanziWriter: NSObject {
   private var _animateStrokeOnComplete: HWCompletionHandler? = nil
   private var _highlightStrokeOnComplete: HWCompletionHandler? = nil
   
-  private var _quizOnComplete: ((HWQuizCompletionResult) -> Void)? = nil
-  private var _quizOnCorrectStroke: ((HWQuizResult) -> Void)? = nil
-  private var _quizOnMistake: ((HWQuizResult) -> Void)? = nil
-  
-  private var _charDataLoader: HWCharDataLoader? = nil
+  private var _quizOnComplete: HWQuizOnComplete? = nil
+  private var _quizOnCorrectStroke: HWQuizOnCorrectStroke? = nil
+  private var _quizOnMistake: HWQuizOnMistake? = nil
   
   public var view: WKWebView {
     get { return webView }
@@ -78,6 +76,11 @@ public class HanziWriter: NSObject {
     webView.configuration.userContentController.add(self, name: "charDataLoader")
     webView.configuration.userContentController.add(self, name: "onLoadCharDataSuccess")
     webView.configuration.userContentController.add(self, name: "onLoadCharDataError")
+
+    webView.configuration.userContentController.add(self, name: "touchstart")
+    webView.configuration.userContentController.add(self, name: "touchmove")
+    webView.configuration.userContentController.add(self, name: "touchend")
+    webView.configuration.userContentController.add(self, name: "touchcancel")
     
     webView.configuration.userContentController.add(self, name: "showCharacter.onComplete")
     webView.configuration.userContentController.add(self, name: "hideCharacter.onComplete")
@@ -249,12 +252,15 @@ extension HanziWriter: WKScriptMessageHandler {
     // Console
     if message.name == "console.log" {
       print("ℹ️ \(message.body)")
+      return
     }
     if message.name == "console.warn" {
       print("⚠️ \(message.body)")
+      return
     }
     if message.name == "console.error" {
       print("❌ \(message.body)")
+      return
     }
     
     // Loading character
@@ -275,6 +281,7 @@ extension HanziWriter: WKScriptMessageHandler {
       } else {
         print("❌ [msg:charDataLoader] invalid character: \(message.body)")
       }
+      return
     }
     if message.name == "onLoadCharDataSuccess" {
       if let onLoadCharDataSuccess = options.onLoadCharDataSuccess {
@@ -287,6 +294,7 @@ extension HanziWriter: WKScriptMessageHandler {
       } else {
         print("✅ [msg:onLoadCharDataSuccess] \(message.body)")
       }
+      return
     }
     if message.name == "onLoadCharDataError" {
       if let onLoadCharDataError = options.onLoadCharDataError {
@@ -294,55 +302,103 @@ extension HanziWriter: WKScriptMessageHandler {
       } else {
         print("❌ [msg:onLoadCharDataError] \(message.body)")
       }
+      return
+    }
+
+    // Touches
+    if message.name == "touchstart", let touchStart = options.onTouchStart {
+      if let json = message.body as? String, let touches = try? parseJson(from: json, to: [HWTouch].self) {
+        touchStart(touches)
+      } else {
+        print("❌ [msg:touchstart] failed to parse touches: \(message.body)")
+      }
+      return
+    }
+    if message.name == "touchmove", let touchMove = options.onTouchMove {
+      if let json = message.body as? String, let touches = try? parseJson(from: json, to: [HWTouch].self) {
+        touchMove(touches)
+      } else {
+        print("❌ [msg:touchmove] failed to parse touches: \(message.body)")
+      }
+      return
+    }
+    if message.name == "touchend", let touchEnd = options.onTouchEnd {
+      if let json = message.body as? String, let touches = try? parseJson(from: json, to: [HWTouch].self) {
+        touchEnd(touches)
+      } else {
+        print("❌ [msg:touchend] failed to parse touches: \(message.body)")
+      }
+      return
+    }
+    if message.name == "touchcancel", let touchCancel = options.onTouchCancel {
+      if let json = message.body as? String, let touches = try? parseJson(from: json, to: [HWTouch].self) {
+        touchCancel(touches)
+      } else {
+        print("❌ [msg:touchcancel] failed to parse touches: \(message.body)")
+      }
+      return
     }
     
     // Writer
     if message.name == "showCharacter.onComplete", let onComplete = _showCharacterOnComplete {
       onComplete()
+      return
     }
     if message.name == "hideCharacter.onComplete", let onComplete = _hideCharacterOnComplete {
       onComplete()
+      return
     }
     if message.name == "showOutline.onComplete", let onComplete = _showOutlineOnComplete {
       onComplete()
+      return
     }
     if message.name == "hideOutline.onComplete", let onComplete = _hideOutlineOnComplete {
       onComplete()
+      return
     }
     if message.name == "updateColor.onComplete", let onComplete = _updateColorOnComplete {
       onComplete()
+      return
     }
     if message.name == "animateCharacter.onComplete", let onComplete = _animateCharacterOnComplete {
       onComplete()
+      return
     }
     if message.name == "animateStroke.onComplete", let onComplete = _animateStrokeOnComplete {
       onComplete()
+      return
     }
     if message.name == "highlightStroke.onComplete", let onComplete = _highlightStrokeOnComplete {
       onComplete()
+      return
     }
     
     // Quiz
-    if message.name == "quiz.onComplete" {
-      if let onComplete = _quizOnComplete {
-        if let json = message.body as? String, let result = try? HWQuizCompletionResult(json: json) {
-          onComplete(result)
-        }
+    if message.name == "quiz.onComplete",  let onComplete = _quizOnComplete {
+      if let json = message.body as? String, let result = try? HWQuizCompletionResult(json: json) {
+        onComplete(.success(result))
+      } else {
+        onComplete(.failure(HWJSMessageError.failedToParseMessageBody))
       }
+      return
     }
-    if message.name == "quiz.onCorrectStroke" {
-      if let onComplete = _quizOnCorrectStroke {
-        if let json = message.body as? String, let result = try? HWQuizResult(json: json) {
-          onComplete(result)
-        }
+    if message.name == "quiz.onCorrectStroke",  let onComplete = _quizOnCorrectStroke {
+      if let json = message.body as? String, let result = try? HWQuizResult(json: json) {
+        onComplete(.success(result))
+      } else {
+        onComplete(.failure(HWJSMessageError.failedToParseMessageBody))
       }
+      return
     }
-    if message.name == "quiz.onMistake" {
-      if let onComplete = _quizOnMistake {
-        if let json = message.body as? String, let result = try? HWQuizResult(json: json) {
-          onComplete(result)
-        }
+    if message.name == "quiz.onMistake",  let onComplete = _quizOnMistake {
+      if let json = message.body as? String, let result = try? HWQuizResult(json: json) {
+        onComplete(.success(result))
+      } else {
+        onComplete(.failure(HWJSMessageError.failedToParseMessageBody))
       }
+      return
     }
+    
+    print("Unhandled JS Event: \(message.name)")
   }
 }

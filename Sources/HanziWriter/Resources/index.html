@@ -9,6 +9,7 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
     <script src="console-handlers.js"></script>
+    <script src="message-handler.js"></script>
     <script src="hanzi-writer.min.js"></script>
     <style>
       body {
@@ -37,15 +38,10 @@
       }
 
       function createHandler(name) {
+        const postMessage = getMessageHandler(name);
         return (data) => {
           try {
-            if (data) {
-              window.webkit.messageHandlers[name]?.postMessage?.(
-                JSON.stringify(data),
-              );
-            } else {
-              window.webkit.messageHandlers[name]?.postMessage?.();
-            }
+            postMessage?.(data ? JSON.stringify(data) : undefined);
           } catch (e) {
             console.error(errorMessage("createHandler:" + name, e));
             throw e;
@@ -79,23 +75,28 @@
           if (!options.drawingWidth) {
             options.drawingWidth = 36;
           }
-          options.charDataLoader = (char, onComplete) => {
-            charDataLoaderCompletionHandler = onComplete;
-            window.webkit.messageHandlers["charDataLoader"]?.postMessage?.(
-              char,
-            );
-          };
-          options.onLoadCharDataSuccess = createHandler(
-            "onLoadCharDataSuccess",
-          );
-          options.onLoadCharDataError = createHandler("onLoadCharDataError");
+          getMessageHandler("charDataLoader", (postMessage) => {
+            options.charDataLoader = (char, onComplete) => {
+              charDataLoaderCompletionHandler = onComplete;
+              postMessage(char);
+            };
+          });
+          getMessageHandler("onLoadCharDataSuccess", (postMessage) => {
+            options.onLoadCharDataSuccess = function (result) {
+              postMessage(JSON.stringify(result));
+            };
+          });
+          getMessageHandler("onLoadCharDataError", (postMessage) => {
+            options.onLoadCharDataError = function (e) {
+              postMessage(e?.message || JSON.stringify(e));
+            };
+          });
           const element = document.getElementById("writer");
           window.writer = new HanziWriter(element, options);
 
           if (options.autoResize) {
             window.addEventListener("resize", (e) => {
               try {
-                console.log("Resize");
                 writer.updateDimensions({
                   width: window.innerWidth,
                   height: window.innerHeight,
@@ -106,10 +107,48 @@
               }
             });
           }
+
+          setupTouchHandlers(element);
         } catch (e) {
           console.error(errorMessage("initHanziWriter", e));
           throw e;
         }
+      }
+
+      function setupTouchHandlers(element) {
+        function createTouch(touch) {
+          return {
+            id: touch.identifier,
+            x: touch.clientX,
+            y: touch.clientY,
+            radiusX: touch.radiusX,
+            radiusY: touch.radiusY,
+          };
+        }
+        getMessageHandler("touchstart", (postMessage) => {
+          element.addEventListener("touchstart", (e) => {
+            const touches = Array.from(e.touches).map(createTouch);
+            postMessage(JSON.stringify(touches));
+          });
+        });
+        getMessageHandler("touchmove", (postMessage) => {
+          element.addEventListener("touchmove", (e) => {
+            const touches = Array.from(e.touches).map(createTouch);
+            postMessage(JSON.stringify(touches));
+          });
+        });
+        getMessageHandler("touchend", (postMessage) => {
+          element.addEventListener("touchend", (e) => {
+            const touches = Array.from(e.touches).map(createTouch);
+            postMessage(JSON.stringify(touches));
+          });
+        });
+        getMessageHandler("touchcancel", (postMessage) => {
+          element.addEventListener("touchcancel", (e) => {
+            const touches = Array.from(e.touches).map(createTouch);
+            postMessage(JSON.stringify(touches));
+          });
+        });
       }
 
       function showCharacter(options = {}) {

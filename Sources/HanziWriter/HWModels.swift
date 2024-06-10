@@ -12,11 +12,51 @@ public typealias HWCharDataLoader = (_ character: String, @escaping HWCharDataLo
 public typealias HWLoadCharDataSuccess = (HWCharData) -> Void
 public typealias HWLoadCharDataError = (Any) -> Void
 
-public typealias HWQuizOnComplete = (HWQuizCompletionResult) -> Void
-public typealias HWQuizOnCorrectStroke = (HWQuizResult) -> Void
-public typealias HWQuizOnMistake = (HWQuizResult) -> Void
+public typealias HWOnTouch = (_ touches: [HWTouch]) -> Void
+
+public typealias HWQuizOnComplete = (Result<HWQuizCompletionResult, Error>) -> Void
+public typealias HWQuizOnCorrectStroke = (Result<HWQuizResult, Error>) -> Void
+public typealias HWQuizOnMistake = (Result<HWQuizResult, Error>) -> Void
 
 public typealias HWCompletionHandler = () -> Void
+
+public enum HWColorName: String, Codable {
+  case strokeColor
+  case radicalColor
+  case outlineColor
+  case highlightColor
+  case drawingColor
+}
+
+public struct HWTouch: Codable {
+  public let id: Int
+  public let x: Double
+  public let y: Double
+  public let radiusX: Double
+  public let radiusY: Double
+
+  public init(json: String) throws {
+    self = try parseJson(from: json, to: Self.self)
+  }
+  
+  func toJson() throws -> String {
+    return try toJsonString(self)
+  }
+}
+
+public struct HWCharData: Codable {
+  public let strokes: [String]
+  public let medians: [[[Double]]]
+  
+  public init(json: String) throws {
+    self = try parseJson(from: json, to: Self.self)
+  }
+  
+  func toJson() throws -> String {
+    return try toJsonString(self)
+  }
+}
+
 
 internal struct HWCodableOptions: Codable {
   var showOutline: Bool? = nil
@@ -49,13 +89,17 @@ public struct HWOptions {
   public var charDataLoader: HWCharDataLoader? = nil
   public var onLoadCharDataSuccess: HWLoadCharDataSuccess? = nil
   public var onLoadCharDataError: HWLoadCharDataError? = nil
+  public var onTouchStart: HWOnTouch? = nil
+  public var onTouchMove: HWOnTouch? = nil
+  public var onTouchEnd: HWOnTouch? = nil
+  public var onTouchCancel: HWOnTouch? = nil
   
   public init(characterDataLoader: HWCharDataLoader? = nil) {
     self.codableOptions = HWCodableOptions()
     self.charDataLoader = characterDataLoader
   }
 
-  init(showOutline: Bool? = nil, showCharacter: Bool? = nil, width: Double? = nil, height: Double? = nil, padding: Double? = nil, strokeAnimationSpeed: Double? = nil, strokeHighlightSpeed: Double? = nil, strokeFadeDuration: Double? = nil, delayBetweenStrokes: Double? = nil, delayBetweenLoops: Double? = nil, strokeColor: String? = nil, radicalColor: String? = nil, highlightColor: String? = nil, outlineColor: String? = nil, drawingColor: String? = nil, drawingWidth: Double? = nil, showHintAfterMisses: Int? = nil, markStrokeCorrectAfterMisses: Int? = nil, quizStartStrokeNum: Int? = nil, acceptBackwardsStrokes: Bool? = nil, highlightOnComplete: Bool? = nil, highlightCompleteColor: String? = nil, autoResize: Bool? = nil, charDataLoader: HWCharDataLoader? = nil, onLoadCharDataSuccess: HWLoadCharDataSuccess? = nil, onLoadCharDataError: HWLoadCharDataError? = nil) {
+  init(showOutline: Bool? = nil, showCharacter: Bool? = nil, width: Double? = nil, height: Double? = nil, padding: Double? = nil, strokeAnimationSpeed: Double? = nil, strokeHighlightSpeed: Double? = nil, strokeFadeDuration: Double? = nil, delayBetweenStrokes: Double? = nil, delayBetweenLoops: Double? = nil, strokeColor: String? = nil, radicalColor: String? = nil, highlightColor: String? = nil, outlineColor: String? = nil, drawingColor: String? = nil, drawingWidth: Double? = nil, showHintAfterMisses: Int? = nil, markStrokeCorrectAfterMisses: Int? = nil, quizStartStrokeNum: Int? = nil, acceptBackwardsStrokes: Bool? = nil, highlightOnComplete: Bool? = nil, highlightCompleteColor: String? = nil, autoResize: Bool? = nil, charDataLoader: HWCharDataLoader? = nil, onLoadCharDataSuccess: HWLoadCharDataSuccess? = nil, onLoadCharDataError: HWLoadCharDataError? = nil, onTouchStart: HWOnTouch? = nil, onTouchMove: HWOnTouch? = nil, onTouchEnd: HWOnTouch? = nil, onTouchCancel: HWOnTouch? = nil) {
     self.codableOptions = HWCodableOptions(
       showOutline: showOutline,
       width: width,
@@ -83,6 +127,10 @@ public struct HWOptions {
     self.charDataLoader = charDataLoader
     self.onLoadCharDataSuccess = onLoadCharDataSuccess
     self.onLoadCharDataError = onLoadCharDataError
+    self.onTouchStart = onTouchStart
+    self.onTouchMove = onTouchMove
+    self.onTouchEnd = onTouchEnd
+    self.onTouchCancel = onTouchCancel
   }
   
   func toJson() throws -> String {
@@ -288,26 +336,5 @@ public struct HWQuizCompletionResult: Codable {
 
   public init(json: String) throws {
     self = try parseJson(from: json, to: Self.self)
-  }
-}
-
-public enum HWColorName: String, Codable {
-  case strokeColor
-  case radicalColor
-  case outlineColor
-  case highlightColor
-  case drawingColor
-}
-
-public struct HWCharData: Codable {
-  public let strokes: [String]
-  public let medians: [[[Double]]]
-  
-  public init(json: String) throws {
-    self = try parseJson(from: json, to: Self.self)
-  }
-  
-  func toJson() throws -> String {
-    return try toJsonString(self)
   }
 }
