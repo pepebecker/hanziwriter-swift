@@ -12,6 +12,7 @@ public typealias HWCharDataLoader = (_ character: String, @escaping HWCharDataLo
 public typealias HWLoadCharDataSuccess = (HWCharData) -> Void
 public typealias HWLoadCharDataError = (Any) -> Void
 
+public typealias HWOnResize = (_ size: HWSize) -> Void
 public typealias HWOnTouch = (_ touches: [HWTouch]) -> Void
 
 public typealias HWQuizOnComplete = (Result<HWQuizCompletionResult, Error>) -> Void
@@ -28,33 +29,27 @@ public enum HWColorName: String, Codable {
   case drawingColor
 }
 
+public struct HWSize: Codable {
+  public let width: Double
+  public let height: Double
+  public var cgSize: CGSize {
+    get {
+      CGSize(width: width, height: height)
+    }
+  }
+}
+
 public struct HWTouch: Codable {
   public let id: Int
   public let x: Double
   public let y: Double
   public let radiusX: Double
   public let radiusY: Double
-
-  public init(json: String) throws {
-    self = try parseJson(from: json, to: Self.self)
-  }
-  
-  func toJson() throws -> String {
-    return try toJsonString(self)
-  }
 }
 
 public struct HWCharData: Codable {
   public let strokes: [String]
   public let medians: [[[Double]]]
-  
-  public init(json: String) throws {
-    self = try parseJson(from: json, to: Self.self)
-  }
-  
-  func toJson() throws -> String {
-    return try toJsonString(self)
-  }
 }
 
 
@@ -86,9 +81,13 @@ internal struct HWCodableOptions: Codable {
 
 public struct HWOptions {
   internal var codableOptions: HWCodableOptions
+  public var logAllEvents: Bool? = nil
+  public var logHandledEvents: Bool? = nil
+  public var logUnhandledEvents: Bool? = nil
   public var charDataLoader: HWCharDataLoader? = nil
   public var onLoadCharDataSuccess: HWLoadCharDataSuccess? = nil
   public var onLoadCharDataError: HWLoadCharDataError? = nil
+  public var onResize: HWOnResize? = nil
   public var onTouchStart: HWOnTouch? = nil
   public var onTouchMove: HWOnTouch? = nil
   public var onTouchEnd: HWOnTouch? = nil
@@ -99,7 +98,7 @@ public struct HWOptions {
     self.charDataLoader = characterDataLoader
   }
 
-  init(showOutline: Bool? = nil, showCharacter: Bool? = nil, width: Double? = nil, height: Double? = nil, padding: Double? = nil, strokeAnimationSpeed: Double? = nil, strokeHighlightSpeed: Double? = nil, strokeFadeDuration: Double? = nil, delayBetweenStrokes: Double? = nil, delayBetweenLoops: Double? = nil, strokeColor: String? = nil, radicalColor: String? = nil, highlightColor: String? = nil, outlineColor: String? = nil, drawingColor: String? = nil, drawingWidth: Double? = nil, showHintAfterMisses: Int? = nil, markStrokeCorrectAfterMisses: Int? = nil, quizStartStrokeNum: Int? = nil, acceptBackwardsStrokes: Bool? = nil, highlightOnComplete: Bool? = nil, highlightCompleteColor: String? = nil, autoResize: Bool? = nil, charDataLoader: HWCharDataLoader? = nil, onLoadCharDataSuccess: HWLoadCharDataSuccess? = nil, onLoadCharDataError: HWLoadCharDataError? = nil, onTouchStart: HWOnTouch? = nil, onTouchMove: HWOnTouch? = nil, onTouchEnd: HWOnTouch? = nil, onTouchCancel: HWOnTouch? = nil) {
+  public init(showOutline: Bool? = nil, showCharacter: Bool? = nil, width: Double? = nil, height: Double? = nil, padding: Double? = nil, strokeAnimationSpeed: Double? = nil, strokeHighlightSpeed: Double? = nil, strokeFadeDuration: Double? = nil, delayBetweenStrokes: Double? = nil, delayBetweenLoops: Double? = nil, strokeColor: String? = nil, radicalColor: String? = nil, highlightColor: String? = nil, outlineColor: String? = nil, drawingColor: String? = nil, drawingWidth: Double? = nil, showHintAfterMisses: Int? = nil, markStrokeCorrectAfterMisses: Int? = nil, quizStartStrokeNum: Int? = nil, acceptBackwardsStrokes: Bool? = nil, highlightOnComplete: Bool? = nil, highlightCompleteColor: String? = nil, autoResize: Bool? = nil, logAllEvents: Bool? = nil, logHandledEvents: Bool? = nil, logUnhandledEvents: Bool? = nil, charDataLoader: HWCharDataLoader? = nil, onLoadCharDataSuccess: HWLoadCharDataSuccess? = nil, onLoadCharDataError: HWLoadCharDataError? = nil, onResize: HWOnResize? = nil, onTouchStart: HWOnTouch? = nil, onTouchMove: HWOnTouch? = nil, onTouchEnd: HWOnTouch? = nil, onTouchCancel: HWOnTouch? = nil) {
     self.codableOptions = HWCodableOptions(
       showOutline: showOutline,
       width: width,
@@ -124,9 +123,13 @@ public struct HWOptions {
       highlightCompleteColor: highlightCompleteColor,
       autoResize: autoResize
     )
+    self.logAllEvents = logAllEvents
+    self.logHandledEvents = logHandledEvents
+    self.logUnhandledEvents = logUnhandledEvents
     self.charDataLoader = charDataLoader
     self.onLoadCharDataSuccess = onLoadCharDataSuccess
     self.onLoadCharDataError = onLoadCharDataError
+    self.onResize = onResize
     self.onTouchStart = onTouchStart
     self.onTouchMove = onTouchMove
     self.onTouchEnd = onTouchEnd

@@ -94,19 +94,23 @@
           const element = document.getElementById("writer");
           window.writer = new HanziWriter(element, options);
 
-          if (options.autoResize) {
-            window.addEventListener("resize", (e) => {
+          window.addEventListener("resize", (e) => {
+            if (options.autoResize) {
               try {
-                writer.updateDimensions({
-                  width: window.innerWidth,
-                  height: window.innerHeight,
-                });
+                updateDimensions(window.innerWidth, window.innerHeight);
               } catch (e) {
                 console.error(errorMessage("initHanziWriter", e));
                 throw e;
               }
+            }
+            getMessageHandler("event.resize", (postMessage) => {
+              const size = {
+                width: window.innerWidth,
+                height: window.innerHeight,
+              };
+              postMessage(JSON.stringify(size));
             });
-          }
+          });
 
           setupTouchHandlers(element);
         } catch (e) {
@@ -125,25 +129,25 @@
             radiusY: touch.radiusY,
           };
         }
-        getMessageHandler("touchstart", (postMessage) => {
+        getMessageHandler("event.touchstart", (postMessage) => {
           element.addEventListener("touchstart", (e) => {
             const touches = Array.from(e.touches).map(createTouch);
             postMessage(JSON.stringify(touches));
           });
         });
-        getMessageHandler("touchmove", (postMessage) => {
+        getMessageHandler("event.touchmove", (postMessage) => {
           element.addEventListener("touchmove", (e) => {
             const touches = Array.from(e.touches).map(createTouch);
             postMessage(JSON.stringify(touches));
           });
         });
-        getMessageHandler("touchend", (postMessage) => {
+        getMessageHandler("event.touchend", (postMessage) => {
           element.addEventListener("touchend", (e) => {
             const touches = Array.from(e.touches).map(createTouch);
             postMessage(JSON.stringify(touches));
           });
         });
-        getMessageHandler("touchcancel", (postMessage) => {
+        getMessageHandler("event.touchcancel", (postMessage) => {
           element.addEventListener("touchcancel", (e) => {
             const touches = Array.from(e.touches).map(createTouch);
             postMessage(JSON.stringify(touches));
@@ -151,10 +155,12 @@
         });
       }
 
-      function showCharacter(options = {}) {
+      function showCharacter(duration) {
         try {
-          if (!options) options = {};
-          options.onComplete = createHandler("showCharacter.onComplete");
+          const options = {
+            duration,
+            onComplete: createHandler("showCharacter.onComplete"),
+          };
           writer.showCharacter(options);
         } catch (e) {
           console.error(errorMessage("showCharacter", e));
@@ -162,10 +168,12 @@
         }
       }
 
-      function hideCharacter(options = {}) {
+      function hideCharacter(duration) {
         try {
-          if (!options) options = {};
-          options.onComplete = createHandler("hideCharacter.onComplete");
+          const options = {
+            duration,
+            onComplete: createHandler("hideCharacter.onComplete"),
+          };
           writer.hideCharacter(options);
         } catch (e) {
           console.error(errorMessage("hideCharacter", e));
@@ -173,10 +181,12 @@
         }
       }
 
-      function showOutline(options = {}) {
+      function showOutline(duration) {
         try {
-          if (!options) options = {};
-          options.onComplete = createHandler("showOutline.onComplete");
+          const options = {
+            duration,
+            onComplete: createHandler("showOutline.onComplete"),
+          };
           writer.showOutline(options);
         } catch (e) {
           console.error(errorMessage("showOutline", e));
@@ -184,10 +194,12 @@
         }
       }
 
-      function hideOutline(options = {}) {
+      function hideOutline(duration) {
         try {
-          if (!options) options = {};
-          options.onComplete = createHandler("hideOutline.onComplete");
+          const options = {
+            duration,
+            onComplete: createHandler("hideOutline.onComplete"),
+          };
           writer.hideOutline(options);
         } catch (e) {
           console.error(errorMessage("hideOutline", e));
@@ -195,10 +207,22 @@
         }
       }
 
-      function updateColor(colorName, colorVal, options = {}) {
+      function updateDimensions(width, height, padding) {
         try {
-          if (!options) options = {};
-          options.onComplete = createHandler("updateColor.onComplete");
+          const options = { width, height, padding };
+          writer.updateDimensions(options);
+        } catch (e) {
+          console.error(errorMessage("updateDimensions", e));
+          throw e;
+        }
+      }
+
+      function updateColor(colorName, colorVal, duration) {
+        try {
+          const options = {
+            duration,
+            onComplete: createHandler("updateColor.onComplete"),
+          };
           writer.updateColor(colorName, colorVal, options);
         } catch (e) {
           console.error(errorMessage("updateColor", e));
@@ -206,10 +230,11 @@
         }
       }
 
-      function animateCharacter(options = {}) {
+      function animateCharacter() {
         try {
-          if (!options) options = {};
-          options.onComplete = createHandler("animateCharacter.onComplete");
+          const options = {
+            onComplete: createHandler("animateCharacter.onComplete"),
+          };
           writer.animateCharacter(options);
         } catch (e) {
           console.error(errorMessage("animateCharacter", e));
@@ -217,10 +242,12 @@
         }
       }
 
-      function animateStroke(strokeNum, options = {}) {
+      function animateStroke(strokeNum) {
         try {
-          if (!options) options = {};
-          options.onComplete = createHandler("animateStroke.onComplete");
+          const options = {
+            strokeNum,
+            onComplete: createHandler("animateStroke.onComplete"),
+          };
           writer.animateStroke(strokeNum, options);
         } catch (e) {
           console.error(errorMessage("animateStroke", e));
@@ -228,10 +255,12 @@
         }
       }
 
-      function highlightStroke(strokeNum, options = {}) {
+      function highlightStroke(strokeNum) {
         try {
-          if (!options) options = {};
-          options.onComplete = createHandler("highlightStroke.onComplete");
+          const options = {
+            strokeNum,
+            onComplete: createHandler("highlightStroke.onComplete"),
+          };
           writer.highlightStroke(strokeNum, options);
         } catch (e) {
           console.error(errorMessage("highlightStroke", e));
