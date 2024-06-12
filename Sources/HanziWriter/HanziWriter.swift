@@ -8,6 +8,8 @@
 import Foundation
 import WebKit
 
+public typealias HWCompletionHandler = () -> Void
+
 public class HanziWriter: NSObject {
   
   public static var bundle: Bundle { Bundle.module }
